@@ -1,0 +1,42 @@
+HQ-SRV:
+Samba можно настроить как файловый сервер. Samba также можно настроить как сервер печати для совместного доступа к принтеру.
+
+Создаём директории для общих папок:
+mkdir /opt/{branch,network,admin}
+
+Задаём права на созданные директории:
+chmod 777 /opt/{branch,network,admin}
+
+Описываем общие папки для публикации по названиям в конфигурационном файле /etc/samba/smb.conf:
+vim /etc/samba/smb.conf
+
+Перезапускаем службу samba:
+systemctl restart samba
+
+проверяем:
+smbclient -L localhost -Uadministrator
+
+Настраиваем автоматическое монтирование соответствующих каталогов для доменных пользователей:
+
+BR-SRV:
+Устанавливаем pam_mount:
+apt-get install -y pam_mount
+
+Так как общие ресурсы реализованы, через smb (CIFS) - установим пакет cifs-utils:
+apt-get install -y cifs-utils
+
+установим пакет systemd-settings-enable-kill-user-processes и перезагрузим систему:
+apt-get install -y systemd-settings-enable-kill-user-processes 
+reboot
+
+Прописываем pam_mount в схему аутентификации по умолчанию. В конец файла /etc/pam.d/system-auth добавьте строки
+vim /etc/pam.d/system-auth
+
+скрин 4)2
+
+Устанавливаем правило монтирования ресурса в файле /etc/security/pam_mount.conf.xml:
+vim /etc/security/pam_mount.conf.xml
+
+скрин 4)3   4)4
+
+
