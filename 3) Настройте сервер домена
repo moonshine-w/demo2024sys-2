@@ -1,0 +1,105 @@
+Задание:
+3. Настройте сервер домена выбор, его типа обоснуйте, на базе HQ-SRV через web интерфейс, 
+выбор технологий обоснуйте
+a. Введите машины BR-SRV и CLI в данный домен
+b. Организуйте отслеживание подключения к домену
+
+Выполнение:
+
+HQ-SRV:
+
+Выбор домена - AD + Samba DC (см. обоснование):
+Установим пакет task-samba-dc для настройки Samba AD с использованием серверной части BIND9_DLZ (т.к. ранее был сконфигурирован DNS-сервер на базе bind):
+в случае использования BIND9_DLZ в качестве бэкенда DNS-сервера развёртывание домена через веб-интерфейс alteratora - ни к чему хорошему не приведёт;
+предпочтительнее развёртывание домена в интерактивном или пакетном режимах на выбор.
+
+apt-get install -y task-samba-dc
+
+Настройка BIND для работы с Samba AD:
+
+Отключить chroot:
+control bind-chroot disabled
+
+Отключить KRB5RCACHETYPE:
+grep -q 'bind-dns' /etc/bind/named.conf || echo 'include "/var/lib/samba/bind-dns/named.conf";' >> /etc/bind/named.conf
+
+Отредактировать файл /etc/bind/options.conf:
+vim /etc/bind/options.conf
+
+скрин 3)1  3)2
+
+Выполнить остановку bind:
+systemctl stop bind
+
+Должно быть установлено правильное имя узла и домена для сервера. Для этого в файл /etc/sysconfig/network необходимо добавить строку:
+vim /etc/sysconfig/network
+
+скрин 3)3
+
+И выполнить команды:
+hostnamectl set-hostname hq-srv.demo.first;exec bash
+domainname demo.first
+
+Необходимо очистить базы и конфигурацию Samba (домен, если он создавался до этого, будет удалён):
+rm -f /etc/samba/smb.conf
+rm -rf /var/lib/samba
+rm -rf /var/cache/samba
+mkdir -p /var/lib/samba/sysvol
+
+Для запуска интерактивной установки необходимо выполнить команду:
+samba-tool domain provision
+
+ключаем и добавляем в автозагрузку службы samba и bind:
+systemctl enable --now samba
+systemctl enable --now bind
+
+В момент создания домена Samba конфигурирует шаблон файла krb5.conf для домена в каталоге /var/lib/samba/private/. 
+Можно просто заменить этим файлом файл, находящийся в каталоге /etc/: 
+cp /var/lib/samba/private/krb5.conf /etc/krb5.conf
+
+Проверяем:
+
+Просмотр общей информации о домене:
+samba-tool domain info 127.0.0.1
+
+Проверка имён хостов:
+
+адрес _kerberos._udp.*адрес домена с точкой:
+host -t SRV _kerberos._udp.demo.first.
+
+адрес _ldap._tcp.*адрес домена с точкой:
+host -t SRV _ldap._tcp.demo.first.
+
+адрес адрес хоста.*адрес домена с точкой:
+host -t A dc.demo.first
+
+скрин 3)4
+
+Проверка Kerberos (имя домена должно быть в верхнем регистре):
+kinit administrator@DEMO.FIRST
+
+скрин 3)5
+
+Ввод CLI и BR-SRV в домен:
+
+CLI:
+
+Установим пакет task-auth-ad-sssd:
+apt-get update && apt-get install -y task-auth-ad-sssd
+
+Переходим к редактированию временного соединения и в качестве 
+DNS-сервера прописываем адрес HQ-SRV, а также указываем поисковый домен:
+
+скрины 3)6 - 3)12
+
+BR-SRV:
+
+Установим пакет task-auth-ad-sssd:
+apt-get install -y task-auth-ad-sssd
+
+в качестве DNS-сервера прописываем адрес HQ-SRV, а также указываем поисковый домен:
+echo search demo.first > /etc/net/ifaces/ens33/resolv.conf
+echo nameserver 192.168.100.1 >> /etc/net/ifaces/ens33/resolv.conf
+systemctl restart network
+
+скрин 3)13
