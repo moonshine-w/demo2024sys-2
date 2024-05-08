@@ -1,1 +1,12 @@
 задание - скрин 1)1
+
+Выполнение:
+
+HQ-SRV:
+
+Устанавливаем пакеты bind и bind-utils:
+apt-get install -y bind bind-utils
+
+В конфигурационном файле /etc/bind/options.conf - правим следующие параметры:
+
+vim /etc/bind/options.conf
