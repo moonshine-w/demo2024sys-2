@@ -8,5 +8,44 @@ HQ-SRV:
 apt-get install -y bind bind-utils
 
 В конфигурационном файле /etc/bind/options.conf - правим следующие параметры:
-
 vim /etc/bind/options.conf
+
+скрин 1)2
+
+Запускаем и добавляем в автозагрузку службу bind:
+systemctl enable --now bind
+
+В качестве DNS-сервера для hq-srv должен быть 127.0.0.1:
+echo name_servers=127.0.0.1 >> /etc/resolvconf.conf
+resolvconf -u
+
+скрин 1)3
+
+vim /etc/bind/local.conf
+скрин 1)4
+
+Копируем примеры файлов для зон прямого просмотра:
+cp /etc/bind/zone/{localdomain,hq.db}
+cp /etc/bind/zone/{localdomain,branch.db}
+
+Копируем примеры файлов для зон обратного просмотра:
+cp /etc/bind/zone/{127.in-addr.arpa,100.db}
+cp /etc/bind/zone/{127.in-addr.arpa,200.db}
+
+Задаём необходимые права:
+chown root:named /etc/bind/zone/{hq,branch,100,200}.db
+
+Правим файл зоны прямого просмотра для hq.work:
+vim /etc/bind/zone/hq.db
+
+скрин 1)5  1)6
+
+Проверить файлы зон можно утилитой named-checkconf:
+named-checkconf -z
+
+Перезапускаем службу bind:
+systemctl restart bind
+
+скрин 1)7
+
+
