@@ -1,0 +1,47 @@
+HQ-R:
+Настройка NTP сервера:
+Установим пакет chrony:
+apt-get install -y chrony
+Приводим конфигурационный файл "chrony.conf" к следующему виду:
+vim /etc/chrony.conf
+
+скрин 2)1
+
+Запускаем и добавляем в автозагрузку службу chronyd:
+systemctl enable --now chronyd
+
+Настроим московский часовой пояс (UTC +3):
+timedatectl set-timezone Europe/Moscow
+
+Проверяем 
+timedatectl
+
+HQ-SRV:
+Настроим московский часовой пояс (UTC +3):
+timedatectl set-timezone Europe/Moscow
+
+Установим пакет chrony:
+apt-get install -y chrony
+
+Приводим конфигурационный файл "chrony.conf" к следующему виду:
+vim /etc/chrony.conf
+
+скрин 2)2
+
+где:
+192.168.100.62 - IPv4 адрес HQ-R;
+2000:100::3f - IPv6 адрес HQ-R
+Запускаем и добавляем в автозагрузку службу chronyd:
+systemctl enable --now chronyd
+
+Проверяем:
+с клиента HQ-SRV:
+chronyc sources
+
+с сервера HQ-R:
+chronyc clients
+
+BR-R | BR-SRV | CLI:
+Настройка аналогична HQ-SRV - за исключением указания соответствующих адресов IPv4 и IPv6 HQ
+
+скрин 2)3
