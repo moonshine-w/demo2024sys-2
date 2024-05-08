@@ -1,0 +1,72 @@
+скрин 5)1
+
+BR-SRV:
+Устанавливаем веб-сервер Apache2 и необходимые пакеты:
+apt-get install -y apache2 apache2-{base,httpd-prefork,mod_php8.0,mods}
+
+Устанавливаем PHP и необходимые модули:
+apt-get install -y php8.0 php8.0-{curl,fileinfo,fpm-fcgi,gd,intl,ldap,mbstring,mysqlnd,mysqlnd-mysqli,opcache,soap,sodium,xmlreader,xmlrpc,zip,openssl}
+
+Запускаем веб-сервер и добавляем в автозагрузку:
+systemctl enable --now httpd2
+
+Установка СУБД MySQL:
+apt-get install -y MySQL-server
+
+Включаем и добавляем в автозагрузку MySQL:
+systemctl enable --now mysqld
+
+Устанавливаем git, чтобы можно было скачать проект Moodle:
+apt-get install -y git
+
+Загружаем код проекта Moodle:
+git clone git://git.moodle.org/moodle.git
+
+Переходим в загруженный каталог moodle:
+cd moodle
+
+Извлекаем список каждой доступной ветви:
+git branch -a
+
+Сморим скрин 5)2
+git branch --track MOODLE_403_STABLE origin/MOODLE_403_STABLE
+проверяем:
+git checkout MOODLE_403_STABLE
+
+скрин 5)3!!!!
+
+Копируем локальный репозиторий в /var/www/html/:
+cd ../
+cp -R moodle /var/www/html/
+Создаём необходимую структуру каталагов для корректной установки и работы Moodle:
+mkdir /var/moodledata
+chown -R apache2 /var/moodledata
+chmod -R 777 /var/moodledata
+chmod -R 0755 /var/www/html/moodle
+chown -R apache2:apache2 /var/www/html/moodle
+
+Описываем конфигурационный файл для веб-сервера Apache:
+vim /etc/httpd2/conf/sites-available/moodle.conf
+
+скрин 5)4сука
+
+Создаём символьную ссылку из sites-available на sites-enabled:
+ln -s /etc/httpd2/conf/sites-available/moodle.conf /etc/httpd2/conf/sites-enabled/
+
+Проверяем синтаксис файла виртуального хоста:
+apachectl configtest
+
+Правим количество входных переменных, которые могут быть приняты в одном запросе, для работы Moodle - необходимо 5000, а значение в php.ini по умолчанию 1000:
+sed -i "s/; max_input_vars = 1000/max_input_vars = 5000/g" /etc/php/8.0/apache2-mod_php/php.ini
+
+Перезапускаем веб-сервер:
+systemctl restart httpd2
+
+скрины 5)5, 5)6
+
+добавляем запись в файл /etc/hosts:
+для обращения в Moodle по имени, можно также на HQ-SRV в DNS сервере добавить запись типа CNAME для BR-SRV, за место использования файла /etc/hosts:
+su -
+echo 192.168.200.1 moodle.demo.first moodle >> /etc/hosts
+
+скрины 5)7 -5)22
