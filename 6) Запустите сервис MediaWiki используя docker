@@ -1,0 +1,102 @@
+Задание:
+6. Запустите сервис MediaWiki используя docker на сервере HQ-SRV.
+a. Установите Docker и Docker Compose.
+b. Создайте в домашней директории пользователя файл wiki.yml для приложения MediaWiki:
+i. Средствами docker compose должен создаваться стек контейнеров с приложением MediaWiki и базой данных
+ii. Используйте два сервиса; 
+iii. Основной контейнер MediaWiki должен называться wiki и использовать образ mediawiki;
+iv. Файл LocalSettings.php с корректными настройками должен находиться в домашней папке пользователя и автоматически монтироваться в образ;
+v. Контейнер с базой данных должен называться db и использовать образ mysql;
+vi. Он должен создавать базу с названием mediawiki, доступную по стандартному порту, для пользователя wiki с паролем DEP@ssw0rd;
+vii. База должна храниться в отдельном volume с названием dbvolume.
+MediaWiki должна быть доступна извне через порт 8080.
+
+Выполнение:
+
+HQ-SRV:
+
+Установка docker и docker-compose:
+apt-get install -y docker-{ce,compose}
+
+проверка - скрин 6)1
+
+Включаем и добавляем в автозагрузку службу docker:
+systemctl enable --now docker.service
+
+В домашней директории пользователя root создаём файл wiki.yml со следующим содержимым:
+vim ~/wiki.yml
+
+скрин 6)2
+
+Чтобы отдельный volume для хранения базы данных имел правильное имя - создаём его средствами docker:
+docker volume create dbvolume
+
+Выполняем сборку и запуск стека контейнеров с приложением MediaWiki и базой данных описанных в файле wiki.yml:
+docker-compose -f wiki.yml up -d
+
+скрин 6)3 
+
+MediaWiki должна быть доступна извне через порт 8080
+
+HQ-R:
+
+добавляем проброс порта 8080 при обращение на внешний интерфейс (ens33) на порт 8080 HQ-SRV:
+через выбранный брандмауэр на моменте настройки NAT и проброса порта для SSH:
+
+через nftables:
+nft add rule inet nat prerouting ip daddr 11.11.11.11 tcp dport 8080 dnat ip to 192.168.100.1:8080
+
+также не забываем сохранить внесённые изменения в файл "/etc/nftables/nftables.nft"
+
+через iptables:
+iptables -t nat -A PREROUTING -i ens33 -p tcp --dport 8080 -j DNAT --to-destination 192.168.100.1:8080
+
+также не забываем сохранить внесённые изменения в файл "/etc/sysconfig/iptables"
+
+через firewalld:
+firewall-cmd --permanent --zone=public --add-forward-port=port=8080:proto=tcp:toport=8080:toaddr=192.168.100.1
+firewall-cmd --reload
+
+После можно переходить в браузер для дальнейшей установки MediaWiki.
+
+CLI:
+
+добавляем запись в файл /etc/hosts:
+su -
+echo 11.11.11.11 mediawiki.demo.first mediawiki >> /etc/hosts
+
+скрины 6)4 - 6)13
+
+так как доступ с CLI по ssh до HQ-SRV - ограничен, передадим данный файл сперва на BR-R, 
+т.к. на HQ-R - настроен проброс порта на HQ-SRV:
+systemctl enable --now sshd
+
+BR-R:
+
+Забираем файл LocalSettings.php с CLI:
+scp user@33.33.33.33:~/Загрузки/LocalSettings.php ./
+
+Передаём его на HQ-SRV:
+scp LocalSettings.php admin@11.11.11.11:/tmp
+
+HQ-SRV:
+
+Проверяем:
+ls /tmp/
+
+Перемещаем в домашнюю директорию пользователя root:
+mv /tmp/LocalSettings.php ~/
+
+Раскомментируем строку в файле wiki.yml:
+vim wiki.yml
+
+скрин 6)14
+
+Перезапускаем сервисы средствами docker-compose:
+docker-compose -f wiki.yml stop
+docker-compose -f wiki.yml up -d
+
+скрины 6)15 - 6)17
+
+
+
