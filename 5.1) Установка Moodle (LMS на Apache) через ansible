@@ -1,0 +1,13 @@
+Быстрая установка Moodle средствами Ansible, через пакет deploy:
+
+Установка пакета deploy:
+apt-get install -y deploy
+
+Установка Moodle:
+deploy moodle
+
+скрин 5.1)1  5.1)2
+
+deploy moodle password=5Z4SAq2U28rWyVz
+
+проверка - скрин 5.1)3
